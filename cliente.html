@@ -10,14 +10,12 @@
     <div class="contenedor">
         <h1>Pizzas Roy</h1>
         
-        <!-- Pantalla de Registro -->
         <div id="pantalla-registro-whatsapp">
             <h2>Ingresa tu WhatsApp para avisarte</h2>
             <input type="tel" id="input-whatsapp" placeholder="Ej: 912345678">
             <button class="boton-accion" onclick="registrarNumero()">📱 OBTENER MI TURNO</button>
         </div>
 
-        <!-- Pantalla de Turno -->
         <div id="pantalla-turno" style="display:none;">
             <h2>TU NÚMERO:</h2>
             <div id="mi-numero">--</div>
@@ -35,9 +33,9 @@
         import { getDatabase, ref, onValue, runTransaction, set } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
-        // CONFIGURACIÓN (Asegúrate de tener configurado el HTTP Referrer en Firebase Console)
+        // CONFIGURACIÓN: ESTA CLAVE DEBE ESTAR RESTRINGIDA EN FIREBASE CONSOLA (HTTP REFERRER)
         const firebaseConfig = { 
-            apiKey: "AIzaSyB9kLWRc6t7_XNBhlC10a4jmtbCntxOEYo", 
+            apiKey: "TU_NUEVA_API_KEY_AQUI", 
             authDomain: "avisador-arayapp.firebaseapp.com", 
             databaseURL: "https://avisador-arayapp-default-rtdb.firebaseio.com", 
             projectId: "avisador-arayapp", 
@@ -48,7 +46,6 @@
         
         const db = getDatabase(initializeApp(firebaseConfig));
         
-        // --- LÓGICA DE TURNOS ---
         window.registrarNumero = async () => {
             const whatsapp = document.getElementById("input-whatsapp").value.trim();
             if (!whatsapp || whatsapp.length !== 9 || !whatsapp.startsWith('9')) {
@@ -86,7 +83,6 @@
         }
 
         function activarAlerta() {
-            // Lógica de alerta visual y sonora
             document.getElementById("estado-pantalla").innerHTML = "¡TU PIZZA ESTÁ LISTA!";
             const video = document.getElementById("video-cueca");
             video.style.display = "block";
