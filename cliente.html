@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizzas Roy - Tu Turno</title>
+    <link rel="stylesheet" href="diseno.css?v=5">
+</head>
+<body class="cliente">
+    <div class="contenedor">
+        <h1>Pizzas Roy</h1>
+        
+        <!-- Pantalla de Registro -->
+        <div id="pantalla-registro-whatsapp">
+            <h2>Ingresa tu WhatsApp para avisarte</h2>
+            <input type="tel" id="input-whatsapp" placeholder="Ej: 912345678">
+            <button class="boton-accion" onclick="registrarNumero()">📱 OBTENER MI TURNO</button>
+        </div>
+
+        <!-- Pantalla de Turno -->
+        <div id="pantalla-turno" style="display:none;">
+            <h2>TU NÚMERO:</h2>
+            <div id="mi-numero">--</div>
+            <div id="estado-pantalla">Esperando tu pizza...</div>
+        </div>
+
+        <video id="video-cueca" class="video-cueca" style="display:none;" loop playsinline>
+            <source src="video.mp4" type="video/mp4">
+        </video>
+        <button id="btn-activar-sonido" class="boton-accion" style="display:none;">🔊 ACTIVAR SONIDO</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+        import { getDatabase, ref, onValue, runTransaction, set } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+
+        // CONFIGURACIÓN (Asegúrate de tener configurado el HTTP Referrer en Firebase Console)
+        const firebaseConfig = { 
+            apiKey: "AIzaSyB9kLWRc6t7_XNBhlC10a4jmtbCntxOEYo", 
+            authDomain: "avisador-arayapp.firebaseapp.com", 
+            databaseURL: "https://avisador-arayapp-default-rtdb.firebaseio.com", 
+            projectId: "avisador-arayapp", 
+            storageBucket: "avisador-arayapp.firebasestorage.app", 
+            messagingSenderId: "337997002279", 
+            appId: "1:337997002279:web:6dc307a6e474432e64c002" 
+        };
+        
+        const db = getDatabase(initializeApp(firebaseConfig));
+        
+        // --- LÓGICA DE TURNOS ---
+        window.registrarNumero = async () => {
+            const whatsapp = document.getElementById("input-whatsapp").value.trim();
+            if (!whatsapp || whatsapp.length !== 9 || !whatsapp.startsWith('9')) {
+                alert("Ingresa un número de 9 dígitos que comience con 9");
+                return;
+            }
+
+            const transactionRef = ref(db, 'pizzas_roy/contador_diario');
+            const result = await runTransaction(transactionRef, (c) => (c || 0) + 1);
+            
+            if (result.committed) {
+                const nuevoNumero = result.snapshot.val();
+                await set(ref(db, 'pizzas_roy/pedidos/' + nuevoNumero), {
+                    estado: "ESPERANDO",
+                    whatsapp: "56" + whatsapp,
+                    timestamp: Date.now()
+                });
+                
+                localStorage.setItem('miNumeroPizzasRoy', nuevoNumero);
+                mostrarPantallaTurno(nuevoNumero);
+                escucharPedido(nuevoNumero);
+            }
+        };
+
+        function mostrarPantallaTurno(num) {
+            document.getElementById("pantalla-registro-whatsapp").style.display = "none";
+            document.getElementById("pantalla-turno").style.display = "block";
+            document.getElementById("mi-numero").innerText = "#" + num;
+        }
+
+        function escucharPedido(numero) {
+            onValue(ref(db, 'pizzas_roy/pedidos/' + numero), (snap) => {
+                if (snap.val()?.estado === "LISTO") activarAlerta();
+            });
+        }
+
+        function activarAlerta() {
+            // Lógica de alerta visual y sonora
+            document.getElementById("estado-pantalla").innerHTML = "¡TU PIZZA ESTÁ LISTA!";
+            const video = document.getElementById("video-cueca");
+            video.style.display = "block";
+            video.play().catch(() => document.getElementById("btn-activar-sonido").style.display = "block");
+        }
+    </script>
+</body>
+</html>
