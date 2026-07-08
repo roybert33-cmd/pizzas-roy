@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pizzas Roy - Tu Turno</title>
-    <link rel="stylesheet" href="diseno.css?v=7">
+    <link rel="stylesheet" href="diseno.css?v=8">
 </head>
 <body class="cliente">
     <div class="contenedor">
@@ -47,7 +47,6 @@
         const auth = getAuth(app);
 
         signInAnonymously(auth).then(() => {
-            // Verificar si el cliente ya tenía un turno previo asignado al recargar la página
             const numeroGuardado = localStorage.getItem('miNumeroPizzasRoy');
             if (numeroGuardado) {
                 mostrarPantallaTurno(numeroGuardado);
@@ -84,12 +83,6 @@
                     activarAlerta();
                 }
             });
-            
-            // Si la cocina se reinicia, limpia la pantalla del cliente automáticamente
-            onValue(ref(db, 'pizzas_roy/reinicio_global'), () => {
-                localStorage.removeItem('miNumeroPizzasRoy');
-                location.reload();
-            });
         }
 
         function activarAlerta() {
@@ -112,4 +105,3 @@
     </script>
 </body>
 </html>
-
