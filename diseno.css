@@ -72,6 +72,24 @@ h1 {
     line-height: 1;
 }
 
+/* ===== ELEMENTOS DINÁMICOS DEL CLIENTE ===== */
+#mi-numero {
+    font-size: 4.5em !important;
+    font-weight: 900 !important;
+    color: #009246;
+    margin: 10px 0;
+    line-height: 1;
+}
+
+#estado-pantalla {
+    font-size: 16px;
+    color: #7f8c8d;
+    margin-bottom: 25px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+}
+
 /* ===== BOTONES ===== */
 button, .boton-accion {
     width: 100%;
@@ -104,14 +122,14 @@ button:active, .boton-accion:active {
     background: #007a3a;
 }
 
-/* Botón reiniciar */
-button[onclick="reiniciar()"] {
+/* Botón reiniciar y estilos generales de botones secundarios */
+button[onclick="reiniciar()"], #btn-reiniciar {
     background: #555;
     color: white;
     margin-top: 15px;
 }
 
-button[onclick="reiniciar()"]:hover {
+button[onclick="reiniciar()"]:hover, #btn-reiniciar:hover {
     background: #333;
 }
 
@@ -170,6 +188,20 @@ button[onclick="reiniciar()"]:hover {
     opacity: 0.9;
 }
 
+/* ===== CORRECCIÓN: VIDEO PARA LA VISTA DEL CLIENTE ===== */
+.video-cueca {
+    display: block;
+    width: 100%;
+    max-width: 100%; /* Forzar de verdad a que no exceda el ancho de la tarjeta blanca */
+    height: auto;
+    object-fit: contain; /* Encaja la animación del chef completa sin recortarla */
+    box-sizing: border-box;
+    border-radius: 15px;
+    margin-top: 20px;
+    border: 4px solid #CE2B37;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
 /* ===== RESPONSIVE CELU ===== */
 @media (max-width: 600px) {
     body {
@@ -181,8 +213,8 @@ button[onclick="reiniciar()"]:hover {
     h1 {
         font-size: 2.2em;
     }
-    #actual {
-        font-size: 4em;
+    #actual, #mi-numero {
+        font-size: 3.5em !important;
     }
     button, .boton-accion {
         font-size: 16px;
@@ -191,4 +223,5 @@ button[onclick="reiniciar()"]:hover {
     .logo-aw {
         max-width: 65px;
     }
-}
+    }
+    
