@@ -58,7 +58,8 @@ h1::before {
     margin-bottom: 10px;
 }
 
-#pantalla-registro h2 {
+/* CORREGIDO: Ajustado para que aplique correctamente al contenedor del HTML nuevo */
+#pantalla-registro-turno h2, #pantalla-registro h2 {
     color: #333 !important;
     font-size: 14px !important;
     letter-spacing: 2px;
@@ -111,6 +112,16 @@ h1::before {
     box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 
+/* NUEVO: Elimina de forma radical cualquier rastro visual de la caja de WhatsApp anterior */
+.whatsapp-local, #whatsapp-box, .whatsapp-box {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     body { 
@@ -126,4 +137,4 @@ h1::before {
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.8; }
-}
+    }
