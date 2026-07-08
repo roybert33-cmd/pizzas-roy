@@ -104,19 +104,18 @@ h1::before {
     transform: scale(1.02);
 }
 
-/* CORREGIDO: Ajusta de forma perfecta la escala de la imagen del video sin deformarlo */
+/* CORREGIDO: El video ocupa todo el ancho de la tarjeta sin reducirse de más y sin deformar la imagen */
 .video-cueca {
+    display: block;
     width: 100%;
     max-width: 100%; 
-    height: auto; /* Permite que la altura se ajuste al tamaño real */
-    max-height: 250px; /* Evita que el video crezca demasiado hacia abajo */
-    object-fit: contain; /* Ajusta la imagen completa del chef dentro del cuadro sin cortarla */
+    height: auto;
+    object-fit: cover; /* Ajusta la imagen dentro de los bordes del contenedor de forma exacta */
     box-sizing: border-box;
     border-radius: 15px;
     margin-top: 20px;
     border: 4px solid #CE2B37;
     box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-    background-color: #fff; /* Fondo blanco por si el video tiene bordes transparentes */
 }
 
 /* Responsive */
