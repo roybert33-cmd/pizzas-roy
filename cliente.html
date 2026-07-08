@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pizzas Roy - Tu Turno</title>
-    <link rel="stylesheet" href="diseno.css?v=8">
+    <link rel="stylesheet" href="diseno.css?v=9">
 </head>
 <body class="cliente">
     <div class="contenedor">
@@ -47,11 +47,26 @@
         const auth = getAuth(app);
 
         signInAnonymously(auth).then(() => {
-            const numeroGuardado = localStorage.getItem('miNumeroPizzasRoy');
-            if (numeroGuardado) {
-                mostrarPantallaTurno(numeroGuardado);
-                escucharPedido(numeroGuardado);
-            }
+            // Escuchar si la cocina presiona "REINICIAR"
+            onValue(ref(db, 'pizzas_roy/reinicio_global'), (snap) => {
+                const horaReinicio = snap.val() || 0;
+                const horaTurnoCliente = parseInt(localStorage.getItem('fechaTurnoPizzasRoy') || 0);
+
+                // Si la cocina reinició DESPUÉS de que el cliente sacó su turno, borramos el turno viejo
+                if (horaReinicio > horaTurnoCliente) {
+                    localStorage.removeItem('miNumeroPizzasRoy');
+                    localStorage.removeItem('fechaTurnoPizzasRoy');
+                    document.getElementById("pantalla-turno").style.display = "none";
+                    document.getElementById("pantalla-registro-turno").style.display = "block";
+                } else {
+                    // Si el turno es válido y nuevo, lo muestra
+                    const numeroGuardado = localStorage.getItem('miNumeroPizzasRoy');
+                    if (numeroGuardado) {
+                        mostrarPantallaTurno(numeroGuardado);
+                        escucharPedido(numeroGuardado);
+                    }
+                }
+            });
         });
         
         document.getElementById("btn-solicitar-turno").addEventListener("click", async () => {
@@ -60,12 +75,16 @@
             
             if (result.committed) {
                 const nuevoNumero = result.snapshot.val();
+                const ahora = Date.now();
+
                 await set(ref(db, 'pizzas_roy/pedidos/' + nuevoNumero), {
                     estado: "ESPERANDO",
-                    timestamp: Date.now()
+                    timestamp: ahora
                 });
                 
                 localStorage.setItem('miNumeroPizzasRoy', nuevoNumero);
+                localStorage.setItem('fechaTurnoPizzasRoy', ahora); // Guardamos la hora de creación
+                
                 mostrarPantallaTurno(nuevoNumero);
                 escucharPedido(nuevoNumero);
             }
@@ -91,7 +110,6 @@
             video.style.display = "block";
             
             const btnSonido = document.getElementById("btn-activar-sonido");
-            
             video.play().catch(() => {
                 btnSonido.style.display = "block";
             });
