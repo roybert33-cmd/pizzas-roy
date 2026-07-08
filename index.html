@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" href="icono-pizza.png">
     <link rel="apple-touch-icon" href="icono-pizza.png">
     
-    <link rel="stylesheet" href="diseno.css?v=27">
+    <link rel="stylesheet" href="diseno.css?v=28">
     
     <style>
         .whatsapp-local, #whatsapp-box {
@@ -97,24 +97,17 @@
                 updates['pizzas_roy/contador_diario'] = 0;
                 updates['pizzas_roy/ultimo_avisado'] = 0;
                 updates['pizzas_roy/pedidos'] = null;
+                // Dejamos una marca con la hora exacta del reinicio
+                updates['pizzas_roy/reinicio_global'] = Date.now();
                 
                 update(ref(db), updates).then(() => {
-                    // Forzamos el reseteo inmediato en las variables locales de la app
                     totalEmitidos = 0;
                     ultimoAvisado = 0;
                     actualizarPantalla();
-                    alert("Sistema reiniciado a 0 exitosamente.");
-                }).catch((error) => {
-                    alert("Hubo un error al reiniciar: " + error.message);
+                    alert("Sistema de cocina reiniciado.");
                 });
             }
         });
-        
-        if ('serviceWorker' in navigator) {
-          window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./service-worker.js').catch((err) => console.log('Error SW:', err));
-          });
-        }
     </script>
 </body>
 </html>
