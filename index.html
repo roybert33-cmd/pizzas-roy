@@ -11,7 +11,13 @@
     <link rel="icon" type="image/png" href="icono-pizza.png">
     <link rel="apple-touch-icon" href="icono-pizza.png">
     
-    <link rel="stylesheet" href="diseno.css?v=14">
+    <link rel="stylesheet" href="diseno.css?v=26">
+    
+    <style>
+        .whatsapp-local, #whatsapp-box {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
     <div class="contenedor">
@@ -19,23 +25,12 @@
         
         <div class="contador-box">
             <p>Clientes en espera:</p>
-            <span id="actual">0</span>
+            <span id="actual">...</span>
         </div>
         
-        <button class="boton-accion" onclick="avisarSiguiente()">🔔 AVISAR SIGUIENTE</button>
+        <button class="boton-accion" id="btn-avisar" disabled>⌛ CONECTANDO...</button>
         
-        <div id="whatsapp-box" style="display:none; margin-top:20px;">
-            <button id="btn-whatsapp" class="boton-accion" style="background: #25D366;">
-                📱 ENVIAR WHATSAPP AL #<span id="numero-wsp">0</span>
-            </button>
-            <p id="wsp-info" style="font-size:12px; margin-top:8px; opacity:0.7;"></p>
-        </div>
-
-        <button onclick="reiniciar()">🔄 REINICIAR DÍA</button>
-        
-        <div class="whatsapp-local">
-            WhatsApp Pizzas Roy: +56 9 2969 8056
-        </div>
+        <button id="btn-reiniciar" style="margin-top: 30px;">🔄 REINICIAR DÍA</button>
 
         <div class="slogan-aw">
             <img src="AW.jpg" alt="AW Soluciones Tecnológicas SPA" class="logo-aw">
@@ -44,66 +39,60 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set, update, get } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+        import { getDatabase, ref, onValue, set, update } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
         
-        // Importamos la configuración desde config.js para ocultar la clave
-        import { firebaseConfig } from "./config.js";
+        const firebaseConfig = { 
+            apiKey: "AIzaSyB9kLWRc6t7_XNBhlC10a4jmtbCntxOEYo", 
+            authDomain: "avisador-arayapp.firebaseapp.com", 
+            databaseURL: "https://avisador-arayapp-default-rtdb.firebaseio.com", 
+            projectId: "avisador-arayapp", 
+            storageBucket: "avisador-arayapp.firebasestorage.app", 
+            messagingSenderId: "337997002279", 
+            appId: "1:337997002279:web:6dc307a6e474432e64c002" 
+        };
         
-        const NUMERO_LOCAL = "56929698056";
-        const db = getDatabase(initializeApp(firebaseConfig));
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
         
         let totalEmitidos = 0; 
         let ultimoAvisado = 0;
 
-        signInAnonymously(getAuth()).then(() => {
+        signInAnonymously(auth).then(() => {
+            const btnAvisar = document.getElementById("btn-avisar");
+            btnAvisar.disabled = false;
+            btnAvisar.innerHTML = "🔔 AVISAR SIGUIENTE";
+
             onValue(ref(db, 'pizzas_roy/contador_diario'), (snap) => { 
                 totalEmitidos = snap.val() || 0; 
-                document.getElementById("actual").innerText = totalEmitidos - ultimoAvisado;
+                actualizarPantalla();
             });
             onValue(ref(db, 'pizzas_roy/ultimo_avisado'), (snap) => { 
                 ultimoAvisado = snap.val() || 0; 
-                document.getElementById("actual").innerText = totalEmitidos - ultimoAvisado;
+                actualizarPantalla();
             });
+        }).catch((error) => {
+            document.getElementById("btn-avisar").innerText = "❌ ERROR DE CONEXIÓN";
         });
 
-        window.avisarSiguiente = async () => {
+        function actualizarPantalla() {
+            let enEspera = totalEmitidos - ultimoAvisado;
+            document.getElementById("actual").innerText = enEspera < 0 ? 0 : enEspera;
+        }
+
+        // Vinculación directa de eventos para solucionar la restricción de los módulos
+        document.getElementById("btn-avisar").addEventListener("click", async () => {
             if (ultimoAvisado < totalEmitidos) {
                 let siguiente = ultimoAvisado + 1;
-                const pedidoSnap = await get(ref(db, 'pizzas_roy/pedidos/' + siguiente));
-                const pedidoData = pedidoSnap.val();
-                const whatsappCliente = pedidoData?.whatsapp || null;
-                
                 await set(ref(db, 'pizzas_roy/pedidos/' + siguiente + '/estado'), "LISTO");
                 await set(ref(db, 'pizzas_roy/ultimo_avisado'), siguiente);
-                
-                document.getElementById("whatsapp-box").style.display = "block";
-                document.getElementById("numero-wsp").innerText = siguiente;
-                
-                const mensaje = `*Pizzas Roy* 🍕%0A%0A¡Tu pedido *#${siguiente}* está listo! 👨‍🍳%0A%0ARetira en caja con tu número.`;
-                
-                if (whatsappCliente) {
-                    const urlWhatsApp = `https://wa.me/${whatsappCliente}?text=${mensaje}`;
-                    document.getElementById("wsp-info").innerHTML = `Cliente: +${whatsappCliente}`;
-                    document.getElementById("btn-whatsapp").onclick = () => {
-                        window.open(urlWhatsApp, '_blank');
-                        document.getElementById("whatsapp-box").style.display = "none";
-                    };
-                } else {
-                    const urlWhatsApp = `https://wa.me/?text=${mensaje}`;
-                    document.getElementById("wsp-info").innerText = "Cliente sin WhatsApp guardado.";
-                    document.getElementById("btn-whatsapp").onclick = () => {
-                        window.open(urlWhatsApp, '_blank');
-                        document.getElementById("whatsapp-box").style.display = "none";
-                    };
-                }
             } else { 
                 alert("Ya todos los clientes han sido avisados."); 
-                document.getElementById("whatsapp-box").style.display = "none";
             }
-        };
+        });
 
-        window.reiniciar = () => {
+        document.getElementById("btn-reiniciar").addEventListener("click", () => {
             if(confirm("¿Reiniciar el sistema para un nuevo día?")) {
                 const updates = {};
                 updates['pizzas_roy/contador_diario'] = 0;
@@ -112,16 +101,13 @@
                 updates['pizzas_roy/reinicio_global'] = Date.now();
                 update(ref(db), updates).then(() => {
                     alert("Sistema reiniciado.");
-                    document.getElementById("whatsapp-box").style.display = "none";
                 });
             }
-        };
+        });
         
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./service-worker.js')
-            .then((reg) => console.log('SW registrado'))
-            .catch((err) => console.log('Error SW:', err));
+            navigator.serviceWorker.register('./service-worker.js').catch((err) => console.log('Error SW:', err));
           });
         }
     </script>
