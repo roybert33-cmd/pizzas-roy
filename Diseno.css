@@ -40,7 +40,7 @@ body::before {
     text-align: center;
     border: 3px solid #CE2B37;
     backdrop-filter: blur(8px);
-    box-sizing: border-box; /* Evita que los paddings ensanchen la tarjeta */
+    box-sizing: border-box;
 }
 
 h1 {
@@ -59,7 +59,7 @@ h1::before {
     margin-bottom: 10px;
 }
 
-#pantalla-registro-turno h2, #pantalla-registro h2 {
+#pantalla-registro h2 {
     color: #333 !important;
     font-size: 14px !important;
     letter-spacing: 2px;
@@ -104,25 +104,15 @@ h1::before {
     transform: scale(1.02);
 }
 
-/* CORREGIDO: Adaptación perfecta del tamaño del video dentro de la tarjeta blanca */
+/* CORREGIDO: Ajustado para que el video no se salga de la tarjeta blanca */
 .video-cueca {
     width: 100%;
     max-width: 100%; 
-    box-sizing: border-box; 
+    box-sizing: border-box;
     border-radius: 15px;
     margin-top: 20px;
     border: 4px solid #CE2B37;
     box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-}
-
-/* Elimina de raíz la caja de WhatsApp visible en la cocina */
-.whatsapp-local, #whatsapp-box, .whatsapp-box {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    height: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
 }
 
 /* Responsive */
