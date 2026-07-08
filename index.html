@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" href="icono-pizza.png">
     <link rel="apple-touch-icon" href="icono-pizza.png">
     
-    <link rel="stylesheet" href="diseno.css?v=26">
+    <link rel="stylesheet" href="diseno.css?v=27">
     
     <style>
         .whatsapp-local, #whatsapp-box {
@@ -81,7 +81,6 @@
             document.getElementById("actual").innerText = enEspera < 0 ? 0 : enEspera;
         }
 
-        // Vinculación directa de eventos para solucionar la restricción de los módulos
         document.getElementById("btn-avisar").addEventListener("click", async () => {
             if (ultimoAvisado < totalEmitidos) {
                 let siguiente = ultimoAvisado + 1;
@@ -98,9 +97,15 @@
                 updates['pizzas_roy/contador_diario'] = 0;
                 updates['pizzas_roy/ultimo_avisado'] = 0;
                 updates['pizzas_roy/pedidos'] = null;
-                updates['pizzas_roy/reinicio_global'] = Date.now();
+                
                 update(ref(db), updates).then(() => {
-                    alert("Sistema reiniciado.");
+                    // Forzamos el reseteo inmediato en las variables locales de la app
+                    totalEmitidos = 0;
+                    ultimoAvisado = 0;
+                    actualizarPantalla();
+                    alert("Sistema reiniciado a 0 exitosamente.");
+                }).catch((error) => {
+                    alert("Hubo un error al reiniciar: " + error.message);
                 });
             }
         });
