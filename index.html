@@ -8,6 +8,9 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#CE2B37">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cocina Roy">
     <link rel="icon" type="image/png" href="icono-pizza.png">
     <link rel="apple-touch-icon" href="icono-pizza.png">
     
@@ -17,9 +20,38 @@
         .whatsapp-local, #whatsapp-box {
             display: none !important;
         }
+        
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            animation: pulse 2s infinite;
+            z-index: 1000;
+        }
+        
+        .connection-status.disconnected {
+            background-color: #f44336;
+            animation: pulse-error 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            50% { box-shadow: 0 0 0 5px rgba(76, 175, 80, 0); }
+        }
+        
+        @keyframes pulse-error {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+            50% { box-shadow: 0 0 0 5px rgba(244, 67, 54, 0); }
+        }
     </style>
 </head>
 <body>
+    <div class="connection-status" id="connection-status"></div>
+    
     <div class="contenedor">
         <h1>COCINA</h1>
         
@@ -37,9 +69,12 @@
         </div>
     </div>
 
+    <!-- Script de Notificaciones -->
+    <script src="notifications.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set, update } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+        import { getDatabase, ref, onValue, set, update, onDisconnect } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
         
         const firebaseConfig = { 
@@ -58,56 +93,137 @@
         
         let totalEmitidos = 0; 
         let ultimoAvisado = 0;
+        let isConnected = false;
 
-        signInAnonymously(auth).then(() => {
-            const btnAvisar = document.getElementById("btn-avisar");
-            btnAvisar.disabled = false;
-            btnAvisar.innerHTML = "🔔 AVISAR SIGUIENTE";
-
-            onValue(ref(db, 'pizzas_roy/contador_diario'), (snap) => { 
-                totalEmitidos = snap.val() || 0; 
-                actualizarPantalla();
-            });
-            onValue(ref(db, 'pizzas_roy/ultimo_avisado'), (snap) => { 
-                ultimoAvisado = snap.val() || 0; 
-                actualizarPantalla();
-            });
-        }).catch((error) => {
-            document.getElementById("btn-avisar").innerText = "❌ ERROR DE CONEXIÓN";
+        /**
+         * MONITOREO DE CONEXIÓN
+         */
+        const connectedRef = ref(db, '.info/connected');
+        onValue(connectedRef, (snapshot) => {
+            isConnected = snapshot.val() === true;
+            updateConnectionUI(isConnected);
+            
+            if (isConnected) {
+                console.log('✅ Conectado a Firebase');
+                notificationManager.updateConnectionStatus(true);
+            } else {
+                console.log('⚠️ Desconectado de Firebase');
+                notificationManager.updateConnectionStatus(false);
+            }
         });
 
+        /**
+         * ACTUALIZAR UI DE CONEXIÓN
+         */
+        function updateConnectionUI(connected) {
+            const statusElement = document.getElementById('connection-status');
+            if (connected) {
+                statusElement.classList.remove('disconnected');
+            } else {
+                statusElement.classList.add('disconnected');
+            }
+        }
+
+        /**
+         * INICIALIZAR AUTENTICACIÓN
+         */
+        signInAnonymously(auth)
+            .then(() => {
+                console.log('✅ Autenticado anónimamente');
+                const btnAvisar = document.getElementById("btn-avisar");
+                btnAvisar.disabled = false;
+                btnAvisar.innerHTML = "🔔 AVISAR SIGUIENTE";
+
+                // Listener contador diario
+                onValue(ref(db, 'pizzas_roy/contador_diario'), (snap) => { 
+                    totalEmitidos = snap.val() || 0;
+                    console.log('📊 Total emitidos:', totalEmitidos);
+                    actualizarPantalla();
+                });
+
+                // Listener último avisado
+                onValue(ref(db, 'pizzas_roy/ultimo_avisado'), (snap) => { 
+                    const nuevoAvisado = snap.val() || 0;
+                    
+                    // Si hay un cambio y es un nuevo pedido
+                    if (nuevoAvisado > ultimoAvisado) {
+                        console.log('🍕 Nuevo pedido recibido:', nuevoAvisado);
+                        // Notificar del nuevo pedido
+                        notificationManager.notifyOrderReady(nuevoAvisado);
+                    }
+                    
+                    ultimoAvisado = nuevoAvisado;
+                    console.log('✅ Último avisado:', ultimoAvisado);
+                    actualizarPantalla();
+                });
+
+                // Configurar desconexión
+                onDisconnect(ref(db, 'pizzas_roy/estado')).set('desconectado');
+                set(ref(db, 'pizzas_roy/estado'), 'conectado');
+
+            })
+            .catch((error) => {
+                console.error('❌ Error de autenticación:', error);
+                document.getElementById("btn-avisar").innerText = "❌ ERROR DE CONEXIÓN";
+                notificationManager.notifyError('No se pudo conectar a Firebase');
+            });
+
+        /**
+         * ACTUALIZAR PANTALLA
+         */
         function actualizarPantalla() {
             let enEspera = totalEmitidos - ultimoAvisado;
             document.getElementById("actual").innerText = enEspera < 0 ? 0 : enEspera;
         }
 
+        /**
+         * BOTÓN AVISAR SIGUIENTE
+         */
         document.getElementById("btn-avisar").addEventListener("click", async () => {
             if (ultimoAvisado < totalEmitidos) {
                 let siguiente = ultimoAvisado + 1;
-                await set(ref(db, 'pizzas_roy/pedidos/' + siguiente + '/estado'), "LISTO");
-                await set(ref(db, 'pizzas_roy/ultimo_avisado'), siguiente);
+                try {
+                    await set(ref(db, 'pizzas_roy/pedidos/' + siguiente + '/estado'), "LISTO");
+                    await set(ref(db, 'pizzas_roy/ultimo_avisado'), siguiente);
+                    
+                    // Notificación de éxito
+                    notificationManager.notifySuccess(`Pedido #${siguiente} marcado como listo`);
+                    console.log('✅ Pedido marcado como listo:', siguiente);
+                } catch (error) {
+                    console.error('❌ Error marcando pedido:', error);
+                    notificationManager.notifyError('Error al marcar pedido');
+                }
             } else { 
-                alert("Ya todos los clientes han sido avisados."); 
+                notificationManager.notifyError('Todos los clientes ya fueron avisados');
             }
         });
 
+        /**
+         * BOTÓN REINICIAR DÍA
+         */
         document.getElementById("btn-reiniciar").addEventListener("click", () => {
             if(confirm("¿Reiniciar el sistema para un nuevo día?")) {
                 const updates = {};
                 updates['pizzas_roy/contador_diario'] = 0;
                 updates['pizzas_roy/ultimo_avisado'] = 0;
                 updates['pizzas_roy/pedidos'] = null;
-                // Dejamos una marca con la hora exacta del reinicio
                 updates['pizzas_roy/reinicio_global'] = Date.now();
                 
-                update(ref(db), updates).then(() => {
-                    totalEmitidos = 0;
-                    ultimoAvisado = 0;
-                    actualizarPantalla();
-                    alert("Sistema de cocina reiniciado.");
-                });
+                update(ref(db), updates)
+                    .then(() => {
+                        totalEmitidos = 0;
+                        ultimoAvisado = 0;
+                        actualizarPantalla();
+                        notificationManager.notifySuccess('Sistema reiniciado para nuevo día');
+                        console.log('✅ Sistema reiniciado');
+                    })
+                    .catch(error => {
+                        console.error('❌ Error reiniciando:', error);
+                        notificationManager.notifyError('Error al reiniciar');
+                    });
             }
         });
+
     </script>
 </body>
 </html>

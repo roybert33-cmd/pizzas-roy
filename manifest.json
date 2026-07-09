@@ -1,13 +1,35 @@
 {
   "name": "Pizzas Roy - Cocina",
   "short_name": "Cocina Roy",
-  "description": "AW Soluciones Tecnológicas",
+  "description": "Sistema de notificación de pedidos listos para restaurante Pizzas Roy",
   "start_url": "./",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#CE2B37",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "icono-pizza.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "icono-pizza.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
   "icons": [
+    {
+      "src": "icono-pizza.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "icono-pizza.png",
       "sizes": "512x512",
@@ -16,9 +38,33 @@
     },
     {
       "src": "icono-pizza.png",
-      "sizes": "192x192",
+      "sizes": "256x256",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Avisar Siguiente",
+      "short_name": "Avisar",
+      "description": "Avisar al cliente siguiente que su pedido está listo",
+      "url": "./?action=avisar",
+      "icons": [
+        {
+          "src": "icono-pizza.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }
