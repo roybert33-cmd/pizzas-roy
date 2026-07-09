@@ -1,10 +1,19 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pizzas Roy - Tu Turno</title>
-    <link rel="stylesheet" href="diseno.css?v=10"> </head>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f8f9fa; padding: 20px; }
+        .contenedor { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+        .boton-accion { background: #e63946; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; }
+        .boton-secundario { background: #6c757d; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 20px; }
+        #mi-numero { font-size: 72px; font-weight: bold; color: #e63946; margin: 20px 0; }
+        .video-cueca { width: 100%; max-width: 300px; margin-top: 20px; border-radius: 10px; }
+    </style>
+</head>
 <body class="cliente">
     <div class="contenedor">
         <h1>Pizzas Roy</h1>
@@ -20,11 +29,21 @@
             <div id="estado-pantalla">Esperando tu pizza...</div>
         </div>
 
+        <div id="pantalla-final" style="display:none;">
+            <h2>¡Gracias por tu compra!</h2>
+            <p>Tu pedido ha sido entregado. Ya puedes cerrar esta pestaña.</p>
+            <button class="boton-secundario" id="btn-salir">ENTENDIDO / SALIR</button>
+        </div>
+
         <video id="video-cueca" class="video-cueca" style="display:none;" loop playsinline>
             <source src="video.mp4" type="video/mp4">
         </video>
         <button id="btn-activar-sonido" class="boton-accion" style="display:none;">🔊 ACTIVAR SONIDO</button>
     </div>
+
+    <audio id="audio-silencio" loop>
+        <source src="https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav" type="audio/wav">
+    </audio>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
@@ -45,18 +64,21 @@
         const db = getDatabase(app);
         const auth = getAuth(app);
 
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('SW registrado'))
+            .catch(err => console.log('Error SW:', err));
+        }
+
         signInAnonymously(auth).then(() => {
-            // Monitorear el contador general de Firebase
             onValue(ref(db, 'pizzas_roy/contador_diario'), (snap) => {
                 const contadorServidor = snap.val() || 0;
-
-                // SI EL CONTADOR ES 0: Significa que la cocina reinició el día. Borramos todo.
                 if (contadorServidor === 0) {
                     localStorage.removeItem('miNumeroPizzasRoy');
                     document.getElementById("pantalla-turno").style.display = "none";
+                    document.getElementById("pantalla-final").style.display = "none";
                     document.getElementById("pantalla-registro-turno").style.display = "block";
                 } else {
-                    // SI NO ES 0: Verificamos si este cliente ya tenía un número guardado antes
                     const numeroGuardado = localStorage.getItem('miNumeroPizzasRoy');
                     if (numeroGuardado) {
                         mostrarPantallaTurno(numeroGuardado);
@@ -67,6 +89,14 @@
         });
         
         document.getElementById("btn-solicitar-turno").addEventListener("click", async () => {
+            const audioMudo = document.getElementById("audio-silencio");
+            audioMudo.volume = 0.01;
+            audioMudo.play().catch(e => console.log("Audio de fondo esperando"));
+
+            if ('Notification' in window) {
+                await Notification.requestPermission();
+            }
+
             const transactionRef = ref(db, 'pizzas_roy/contador_diario');
             const result = await runTransaction(transactionRef, (c) => (c || 0) + 1);
             
@@ -99,20 +129,60 @@
 
         function activarAlerta() {
             document.getElementById("estado-pantalla").innerHTML = "¡TU PIZZA ESTÁ LISTA!";
+            
+            if ("vibrate" in navigator) {
+                navigator.vibrate([600, 300, 600, 300, 600, 300, 1000]);
+            }
+
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification("🍕 ¡Pizzas Roy!", {
+                    body: "¡Tu pedido está listo! Pasa a retirarlo.",
+                    tag: "pedido-listo"
+                });
+            }
+
             const video = document.getElementById("video-cueca");
             video.style.display = "block";
             
-            const btnSonido = document.getElementById("btn-activar-sonido");
+            const audioMudo = document.getElementById("audio-silencio");
+            audioMudo.volume = 1.0; 
+
             video.play().catch(() => {
-                btnSonido.style.display = "block";
+                document.getElementById("btn-activar-sonido").style.display = "block";
             });
 
-            btnSonido.addEventListener("click", () => {
+            document.getElementById("btn-activar-sonido").addEventListener("click", function() {
                 video.muted = false;
                 video.play();
-                btnSonido.style.display = "none";
+                this.style.display = "none";
             });
+
+            // Configurar el botón de salida para después de los 40 segundos
+            setTimeout(() => {
+                // Detener elementos multimedia
+                video.pause();
+                audioMudo.pause();
+                
+                // Limpiar el identificador local para que el usuario pueda pedir otro turno si quiere en el futuro
+                localStorage.removeItem('miNumeroPizzasRoy');
+                
+                // Cambiar la vista de la pantalla
+                document.getElementById("pantalla-turno").style.display = "none";
+                video.style.display = "none";
+                document.getElementById("btn-activar-sonido").style.display = "none";
+                document.getElementById("pantalla-final").style.display = "block";
+            }, 40000); 
         }
+
+        // Lógica del botón Entendido / Salir
+        document.getElementById("btn-salir").addEventListener("click", () => {
+            // Intenta cerrar la ventana directamente (funcionará si se abrió por script)
+            window.close();
+            
+            // Si el navegador bloquea window.close(), redirigimos a una página en blanco o inicial
+            // Esto evita que se quede colgada y limpia la memoria del teléfono.
+            window.location.href = "about:blank";
+        });
     </script>
 </body>
 </html>
