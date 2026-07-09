@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pizzas Roy - Tu Turno</title>
-    <link rel="stylesheet" href="diseno.css?v=10">
-</head>
+    <link rel="stylesheet" href="diseno.css?v=10"> </head>
 <body class="cliente">
     <div class="contenedor">
         <h1>Pizzas Roy</h1>
@@ -46,32 +45,18 @@
         const db = getDatabase(app);
         const auth = getAuth(app);
 
-        // --- 1. REGISTRAR EL SERVICE WORKER Y PEDIR PERMISOS ---
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker registrado con éxito', reg))
-                .catch(err => console.error('Error al registrar SW', err));
-            });
-        }
-
-        async function solicitarPermisoNotificaciones() {
-            if ('Notification' in window) {
-                const permiso = await Notification.requestPermission();
-                if (permiso === 'granted') {
-                    console.log('Permiso de notificaciones concedido.');
-                }
-            }
-        }
-
         signInAnonymously(auth).then(() => {
+            // Monitorear el contador general de Firebase
             onValue(ref(db, 'pizzas_roy/contador_diario'), (snap) => {
                 const contadorServidor = snap.val() || 0;
+
+                // SI EL CONTADOR ES 0: Significa que la cocina reinició el día. Borramos todo.
                 if (contadorServidor === 0) {
                     localStorage.removeItem('miNumeroPizzasRoy');
                     document.getElementById("pantalla-turno").style.display = "none";
                     document.getElementById("pantalla-registro-turno").style.display = "block";
                 } else {
+                    // SI NO ES 0: Verificamos si este cliente ya tenía un número guardado antes
                     const numeroGuardado = localStorage.getItem('miNumeroPizzasRoy');
                     if (numeroGuardado) {
                         mostrarPantallaTurno(numeroGuardado);
@@ -82,9 +67,6 @@
         });
         
         document.getElementById("btn-solicitar-turno").addEventListener("click", async () => {
-            // Solicitamos el permiso justo cuando el usuario interactúa (hace clic)
-            await solicitarPermisoNotificaciones();
-
             const transactionRef = ref(db, 'pizzas_roy/contador_diario');
             const result = await runTransaction(transactionRef, (c) => (c || 0) + 1);
             
@@ -110,21 +92,16 @@
         function escucharPedido(numero) {
             onValue(ref(db, 'pizzas_roy/pedidos/' + numero), (snap) => {
                 if (snap.val()?.estado === "LISTO") {
-                    activarAlertaEnPrimerPlano();
+                    activarAlerta();
                 }
             });
         }
 
-        // Esta alerta solo suena/vibra si el usuario tiene la web abierta mirando la pantalla
-        function activarAlertaEnPrimerPlano() {
+        function activarAlerta() {
             document.getElementById("estado-pantalla").innerHTML = "¡TU PIZZA ESTÁ LISTA!";
             const video = document.getElementById("video-cueca");
             video.style.display = "block";
             
-            if ("vibrate" in navigator) {
-                navigator.vibrate([500, 250, 500, 250, 500]);
-            }
-
             const btnSonido = document.getElementById("btn-activar-sonido");
             video.play().catch(() => {
                 btnSonido.style.display = "block";
@@ -133,7 +110,6 @@
             btnSonido.addEventListener("click", () => {
                 video.muted = false;
                 video.play();
-                if ("vibrate" in navigator) navigator.vibrate([500, 250, 500]);
                 btnSonido.style.display = "none";
             });
         }
